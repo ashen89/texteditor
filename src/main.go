@@ -3,30 +3,33 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"golang.org/x/term"
 )
 
 func main() {
-	oldState, err := term.MakeRaw(int(os.Stdin.Fd()))
-
-	if err != nil {
-		panic(err)
+	oldState, errorTerminalRaw := term.MakeRaw(int(os.Stdin.Fd()))
+	if errorTerminalRaw != nil {
+		panic(errorTerminalRaw)
 	}
+	defer term.Restore(int(os.Stdin.Fd()), oldState)
 
 	boolean := true
 	for boolean {
-		buf := make([]byte, 1)
-		n, _ := os.Stdin.Read(buf[:])
+		buf := make([]byte, 8)
+		n, errorRead := os.Stdin.Read(buf[:])
 
-		value := string(buf[:n])
+		if errorRead != nil {
+			continue
+		}
 
-		fmt.Println("byte", buf, "Value", value)
+		value := strings.TrimSpace(string(buf[:n]))
+
+		fmt.Println("byte", buf[:n], "Value", value)
 
 		if value == "q" {
 			boolean = false
-
-			term.Restore(int(os.Stdin.Fd()), oldState)
 		}
 	}
 }
